@@ -7,47 +7,106 @@ import time
 
 
 class MarkovChain:
-    def __init__(self, sources, texts, transition_states):
+    def __init__(self, transition_states, sources=[], texts=[]):
+
         self.sources = sources
-        self.texts = self.verify_texts(texts)
-        self.words = self.parse()
-        self.unique_words = self.get_unique_words()
-        self.next_words, self.sentence_starters = self.create_next_words()
-        self.word_to_index, self.transition_matrix = self.build_markov_chain()
+        self.texts = texts
         self.transition_states = transition_states
-        self.transition_matrices = self.build_transition_matrices()
+        self.words = []
+        self.unique_words = []
+        self.next_words = {}
+        self.sentence_starters = []
+        self.word_to_index = {}
+        self.transition_matrix = []
+        self.transition_matrices = []
 
     def __repr__(self):
+
         # prints the transition matrix
         return repr(self.transition_matrix)
 
-    def verify_texts(self, texts):
-        # verifies that texts is a list
-        if type(texts) != list:
-            raise ValueError("texts must be passed in as elements in a list")
-        return texts
+    def initialize(self):
+
+        start_initialize = time.perf_counter()
+        # initializes the Markov chain parameters
+        self.parse()
+        self.get_unique_words()
+        self.get_next_words_and_sentence_starters()
+        self.build_markov_chain()
+        self.build_transition_matrices()
+
+        done_initialize = time.perf_counter()
+        print(
+            f"initialized Markov chain in {done_initialize - start_initialize} seconds"
+        )
+
+    def add_text_as_string(self, text):
+
+        # verifies parameters
+        if not isinstance(text, str):
+            raise ValueError("text must be a string")
+
+        # adds the string to the list of training texts for the Markov chain
+        self.texts.append(text)
+
+        # reinitializes the Markov chain object to update the parameters
+        self.initialize()
+
+    def add_texts_from_string_list(self, texts):
+
+        # verifies parameters
+        if not isinstance(texts, list) and not all(
+            isinstance(item, str) for item in texts
+        ):
+            raise ValueError("texts must be a list of strings")
+
+        # adds the list of strings to the list of training texts for the Markov chain
+        self.texts.extend(texts)
+
+        # reinitializes the Markov chain object to update the parameters
+        self.initialize()
+
+    def add_text_from_file(self, file):
+
+        # adds the text from the file to the list of training texts
+        try:
+            with open(file, "r") as f:
+                self.texts.append(f.read())
+        except:
+            raise Exception("failed to read file")
+
+        # reinitializes the Markov chain object to update the parameters
+        self.initialize()
+
+    def add_texts_from_file_list(self, files):
+
+        # adds the text from the files to the list of training texts
+        try:
+            for file in files:
+                with open(file, "r") as f:
+                    self.texts.append(f.read())
+        except:
+            raise Exception("failed to read file list")
+
+        # reinitializes the Markov chain object to update the parameters
+        self.initialize()
 
     def parse(self):
+
         # parses the training text into a list of all of the words and punctuation
         words = []
         for text in self.texts:
             words.extend(word_tokenize(text))
-        return words
+
+        self.words = words
 
     def get_unique_words(self):
+
         # creates a set of all of the unique words in the training text
-        return set(self.words)
+        self.unique_words = set(self.words)
 
-    def add_text(self, texts):
-        self.verify_texts(texts)
-        # updates markov chain to include a new source text
-        self.texts.extend(texts)
-        self.words = self.parse()
-        self.unique_words = self.get_unique_words()
-        self.next_words, self.sentence_starters = self.create_next_words()
-        self.word_to_index, self.transition_matrix = self.build_markov_chain()
+    def get_next_words_and_sentence_starters(self):
 
-    def create_next_words(self):
         # initializes the dictionary storing the next-word options
         next_words = {}
         for word in self.unique_words:
@@ -62,9 +121,12 @@ class MarkovChain:
             # only supports sentences ending in period, exclamation, or question
             if self.words[i] in [".!?"]:
                 sentence_starters.append(self.words[i + 1])
-        return next_words, sentence_starters
+
+        self.next_words = next_words
+        self.sentence_starters = sentence_starters
 
     def build_markov_chain(self):
+
         #  maps the words to their indices in the transition matrix
         word_to_index = {word: i for i, word in enumerate(self.unique_words)}
 
@@ -90,9 +152,12 @@ class MarkovChain:
                 transition_matrix[current_word_index][next_word_index] = (
                     count / total_transitions
                 )
-        return word_to_index, transition_matrix
+
+        self.word_to_index = word_to_index
+        self.transition_matrix = transition_matrix
 
     def build_transition_matrices(self):
+
         transition_matrices = []
 
         # creates i + 1 state transition matrices
@@ -100,9 +165,11 @@ class MarkovChain:
             transition_matrices.append(
                 np.linalg.matrix_power(self.transition_matrix, i + 1)
             )
-        return transition_matrices
+
+        self.transition_matrices = transition_matrices
 
     def generate_next_word(self, current_word):
+
         # determines the row of the transition matrix to use
         index = self.word_to_index[current_word]
 
@@ -118,6 +185,8 @@ class MarkovChain:
         return next_word
 
     def generate(self, length, transition_states):
+
+        start_generation = time.perf_counter()
         # chooses the first word of the generation
         current_word = np.random.choice(self.sentence_starters)
         generation = f"\n{current_word}"
@@ -136,13 +205,18 @@ class MarkovChain:
             current_word = next_word
             curr += 1
         generation += "\n"
+
+        done_generation = time.perf_counter()
+        print(f"generated text in {done_generation - start_generation} seconds")
         return generation
 
 
 def generate_text_from_source(length=200, transition_states=1):
 
+    # verifies parameters
     if transition_states not in [1, 2]:
         raise ValueError("number of transition states must be the integer 1 or 2")
+
     # gets the user-input source dataset
     source = input("choose a source dataset: ")
     if source not in ["all", "nursery", "philosophy", "poems", "trump", "victor"]:
@@ -155,9 +229,9 @@ def generate_text_from_source(length=200, transition_states=1):
         "trump": "./sources/trump",
         "victor": "./sources/victor",
     }
-    start_reading = time.perf_counter()
 
     # reads all .txt files in the source directory
+    start_reading = time.perf_counter()
     try:
         sources = []
         texts = []
@@ -171,20 +245,22 @@ def generate_text_from_source(length=200, transition_states=1):
     except:
         raise ValueError("error processing poems - try again or try a different input")
     done_reading = time.perf_counter()
-    print(f"read source files in {done_reading - start_reading} seconds")
+    print(f"\nread source files in {done_reading - start_reading} seconds")
 
     # creates the MarkovChain object
-    chain = MarkovChain(sources, texts, transition_states)
-    done_markov_chain = time.perf_counter()
-    print(f"created Markov chain in {done_markov_chain - done_reading} seconds")
+    chain = MarkovChain(transition_states, sources, texts)
+    chain.initialize()
 
     # generates the text
     print(chain.generate(length, transition_states))
-    done_generation = time.perf_counter()
-    print(f"generated text in {done_generation - done_markov_chain} seconds\n")
+
+    # updates the chain
+    chain.add_text_as_string("This is a test.")
+    print(chain.generate(length, transition_states))
 
 
 if __name__ == "__main__":
+
     while True:
 
         # gets the user-input generation length
