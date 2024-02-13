@@ -32,7 +32,7 @@ class MarkovChain:
         self.parse()
         self.get_unique_words()
         self.get_next_words_and_sentence_starters()
-        self.build_markov_chain(self.memory)
+        self.build_markov_chain()
 
         done_initialize = time.perf_counter()
         print(
@@ -98,10 +98,14 @@ class MarkovChain:
 
     def parse(self):
 
-        # parses the training text into a list of all of the words and punctuation
-        words = []
-        for text in self.texts:
-            words.extend(word_tokenize(text.lower()))
+        if self.memory == 1:
+            # parses the training text into a list of all of the words and punctuation
+            words = []
+            for index, text in enumerate(self.texts):
+                if index == 0:
+                    words.extend(word_tokenize(text.lower()))
+                else:
+                    words.extend(["BREAK"] + word_tokenize(text.lower()))
 
         self.words = words
 
@@ -109,34 +113,39 @@ class MarkovChain:
 
         # creates a set of all of the unique words in the training text
         self.unique_words = set(self.words)
+        self.unique_words.discard("BREAK")
 
     def get_next_words_and_sentence_starters(self):
 
-        # initializes the dictionary storing the next-word options
-        next_words = {}
-        for word in self.unique_words:
-            next_words[word] = []
+        if self.memory == 1:
+            # initializes the dictionary storing the next-word options
+            next_words = {}
+            for word in self.unique_words:
+                next_words[word] = []
 
-        # initializes the list of sentence-starting words
-        sentence_starters = [self.words[0]]
+            # initializes the list of sentence-starting words
+            sentence_starters = [self.words[0]]
 
-        # updates the next_words dictionary with the next-word options
-        for i in range(len(self.words) - 1):
-            next_words[self.words[i]].append(self.words[i + 1])
-            # only supports sentences ending in period, exclamation, or question
-            if self.words[i] in [".!?"]:
-                sentence_starters.append(self.words[i + 1])
+            # updates the next_words dictionary with the next-word options
+            for i in range(len(self.words) - 1):
+
+                # only supports sentences ending in period, exclamation, or question
+                if self.words[i] in [".!?"]:
+                    sentence_starters.append(self.words[i + 1])
+                elif self.words[i] == "BREAK":
+                    sentence_starters.append(self.words[i + 1])
+                    continue
+
+                # skips the break between pieces of text
+                if self.words[i + 1] != "BREAK":
+                    next_words[self.words[i]].append(self.words[i + 1])
 
         self.next_words = next_words
         self.sentence_starters = sentence_starters
 
-    def build_markov_chain(self, memory):
+    def build_markov_chain(self):
 
-        # verifies parameters
-        if memory not in [1, 2]:
-            raise ValueError("memory must be the integer 1 or 2")
-
-        if memory == 1:
+        if self.memory == 1:
 
             #  maps the words to their indices in the transition matrix
             word_to_index = {word: i for i, word in enumerate(self.unique_words)}
