@@ -17,12 +17,12 @@ class MarkovChain:
         self.next_words = {}
         self.sentence_starters = []
         self.word_to_index = {}
-        self.transition_matrices = []
+        self.transition_matrix = []
 
     def __repr__(self):
 
-        # prints the transition matrix
-        return repr(self.transition_matrix)
+        # prints the relevant Markov chain information
+        return f"\nMarkov chain properties:\ntrained on {len(self.texts)} piece[s] of text\ntrained on {len(self.unique_words)} unique words\norder of memory is {self.memory}"
 
     def initialize(self):
 
@@ -136,39 +136,36 @@ class MarkovChain:
         if memory not in [1, 2]:
             raise ValueError("memory must be the integer 1 or 2")
 
-        transition_matrices = []
+        if memory == 1:
 
-        #  maps the words to their indices in the transition matrix
-        word_to_index = {word: i for i, word in enumerate(self.unique_words)}
+            #  maps the words to their indices in the transition matrix
+            word_to_index = {word: i for i, word in enumerate(self.unique_words)}
 
-        # initializes the transition matrix
-        num_words = len(self.unique_words)
-        transition_matrix = np.zeros((num_words, num_words))
+            # initializes the transition matrix
+            num_words = len(self.unique_words)
+            transition_matrix = np.zeros((num_words, num_words))
 
-        # iterates through the words
-        for word, next_words in self.next_words.items():
-            current_word_index = word_to_index[word]
-            total_transitions = len(next_words)
-            next_word_counts = defaultdict(int)
+            # iterates through the words
+            for word, next_words in self.next_words.items():
+                current_word_index = word_to_index[word]
+                total_transitions = len(next_words)
+                next_word_counts = defaultdict(int)
 
-            # counts the occurences of the next-word
-            for next_word in next_words:
-                next_word_counts[next_word] += 1
+                # counts the occurences of the next-word
+                for next_word in next_words:
+                    next_word_counts[next_word] += 1
 
-            # calculates the probability of the next-word given the current word
-            for next_word, count in next_word_counts.items():
-                next_word_index = word_to_index[next_word]
+                # calculates the probability of the next-word given the current word
+                for next_word, count in next_word_counts.items():
+                    next_word_index = word_to_index[next_word]
 
-                # updates the transition matrix
-                transition_matrix[current_word_index][next_word_index] = (
-                    count / total_transitions
-                )
-
-            # stores the one-state transition matrix
-            transition_matrices.append(transition_matrix)
+                    # updates the transition matrix
+                    transition_matrix[current_word_index][next_word_index] = (
+                        count / total_transitions
+                    )
 
         self.word_to_index = word_to_index
-        self.transition_matrices = transition_matrices
+        self.transition_matrix = transition_matrix
 
     def generate_next_word(self, current_word, memory):
 
@@ -188,7 +185,7 @@ class MarkovChain:
             else:
                 next_word = np.random.choice(
                     list(self.word_to_index.keys()),
-                    p=self.transition_matrices[0][index],
+                    p=self.transition_matrix[index],
                 )
             return next_word
 
@@ -212,7 +209,6 @@ class MarkovChain:
             generation += next_word
             current_word = next_word
             curr += 1
-        generation += "\n"
 
         done_generation = time.perf_counter()
         print(f"generated text in {done_generation - start_generation} seconds")
@@ -255,16 +251,15 @@ def generate_text_from_source(length=200, memory=1):
     done_reading = time.perf_counter()
     print(f"\nread source files in {done_reading - start_reading} seconds")
 
-    # creates the MarkovChain object
+    # creates the Markov chain object
     chain = MarkovChain(memory, sources, texts)
     chain.initialize()
 
     # generates the text
     print(chain.generate(length, memory))
 
-    # updates the chain
-    chain.add_text_as_string("this is a test.")
-    print(chain.generate(length, memory))
+    # prints the properties of the Markov chain
+    print(chain)
 
 
 if __name__ == "__main__":
