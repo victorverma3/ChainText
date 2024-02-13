@@ -69,8 +69,10 @@ class MarkovChain:
 
         # adds the text from the file to the list of training texts
         try:
-            with open(file, "r") as f:
-                self.texts.append(f.read())
+            if file not in self.sources:
+                with open(file, "r") as f:
+                    self.sources.append(file)
+                    self.texts.append(f.read())
         except:
             raise Exception("failed to read file")
 
@@ -82,8 +84,12 @@ class MarkovChain:
         # adds the text from the files to the list of training texts
         try:
             for file in files:
-                with open(file, "r") as f:
-                    self.texts.append(f.read())
+                if file in self.sources:
+                    continue
+                else:
+                    with open(file, "r") as f:
+                        self.sources.append(file)
+                        self.texts.append(f.read())
         except:
             raise Exception("failed to read file list")
 
