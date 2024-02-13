@@ -187,7 +187,7 @@ class MarkovChain:
             index = self.word_to_index[current_word]
 
             # chooses the next word from the sentence starters if the sentence is over (only supports sentences ending in period, exclamation, and question)
-            if current_word in [".!?"]:
+            if current_word in ".!?":
                 next_word = np.random.choice(self.sentence_starters)
 
             # chooses the next word based on the transition matrix
@@ -201,6 +201,7 @@ class MarkovChain:
     def generate(self, length, memory):
 
         start_generation = time.perf_counter()
+
         # chooses the first word of the generation
         current_word = np.random.choice(self.sentence_starters)
         generation = f"\n{current_word.title()}"
@@ -215,7 +216,14 @@ class MarkovChain:
                 generation += " "
 
             # appends the next word to the generated text
-            generation += next_word
+            if current_word in ".!?":
+                generation += f"{next_word.title()}"
+            elif current_word == "i":
+                generation += f"{next_word.upper()}"
+            else:
+                generation += next_word
+
+            # updates current word
             current_word = next_word
             curr += 1
 
