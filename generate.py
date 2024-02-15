@@ -218,7 +218,7 @@ class MarkovChain:
             # appends the next word to the generated text
             if current_word in ".!?":
                 generation += f"{next_word.title()}"
-            elif current_word == "i":
+            elif next_word == "i":
                 generation += f"{next_word.upper()}"
             else:
                 generation += next_word
