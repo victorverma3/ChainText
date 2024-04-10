@@ -301,8 +301,8 @@ if __name__ == "__main__":
         if memory == -1:
             quit = True
             break
-        elif memory not in [1, 2]:
-            raise ValueError("memory must be the integer 1 or 2")
+        elif memory != 1:
+            raise ValueError("memory must be the integer 1")
 
         # generates text
         generate_text_from_source(length, memory)
